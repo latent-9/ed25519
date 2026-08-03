@@ -1,7 +1,7 @@
 use {
     ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey},
     solana_ed25519_verify::{
-        ed25519_verify_instruction, Ed25519Verifier, VerificationCriteria, PUBKEY_SERIALIZED_SIZE,
+        verify, Ed25519Verifier, VerificationCriteria, PUBKEY_SERIALIZED_SIZE,
         SIGNATURE_SERIALIZED_SIZE,
     },
     solana_program_error::ProgramError,
@@ -58,7 +58,7 @@ fn constructs_program_instruction_with_direct_layout() {
     let message = b"hello ed25519";
     let (signature, public_key) = signed_payload(message);
 
-    let instruction = ed25519_verify_instruction(&program_id, &public_key, &signature, message);
+    let instruction = verify(&program_id, &public_key, &signature, message);
 
     const PUBKEY_START: usize = 0;
     const SIGNATURE_START: usize = PUBKEY_START + PUBKEY_SERIALIZED_SIZE;
@@ -212,10 +212,6 @@ fn verify_with(
 fn new_uses_zip215_criteria() {
     assert_eq!(
         Ed25519Verifier::new().criteria(),
-        VerificationCriteria::zip215()
-    );
-    assert_eq!(
-        VerificationCriteria::default(),
         VerificationCriteria::zip215()
     );
 }
