@@ -73,9 +73,12 @@ impl Ed25519Verifier {
         let r_bytes: &[u8; 32] = r_bytes.try_into().unwrap();
         let s_bytes: &[u8; 32] = s_bytes.try_into().unwrap();
 
-        if self.criteria.require_canonical_s && !scalar::is_canonical_scalar(s_bytes) {
-            return Err(ProgramError::InvalidArgument);
-        }
+        // `require_canonical_s` is deliberately not checked because
+        // the `multiscalar_multiply_edwards` converts `PodScalar` through
+        // `Scalar::from_canonical_bytes` and returns `None` on a non-canonical
+        // scalar, which maps to the same `InvalidArgument` below. Re-checking
+        // it in-program duplicates work the curve backend already performs.
+
         if self.criteria.require_canonical_a && !scalar::is_canonical_point_encoding(public_key) {
             return Err(ProgramError::InvalidArgument);
         }

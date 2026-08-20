@@ -14,11 +14,6 @@ const FIELD_MODULUS: [u8; 32] = [
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f,
 ];
 
-/// Returns `true` if `scalar` is in canonical `[0, L)` form.
-pub(crate) fn is_canonical_scalar(scalar: &[u8; 32]) -> bool {
-    cmp_le(scalar, &BASEPOINT_ORDER).is_lt()
-}
-
 /// Returns `true` if `encoding` is a canonical compressed Edwards point.
 ///
 /// A compressed point stores the `y`-coordinate in the low 255 bits and the
@@ -97,15 +92,6 @@ pub(crate) fn cmp_le(left: &[u8; 32], right: &[u8; 32]) -> core::cmp::Ordering {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn rejects_group_order_as_non_canonical() {
-        assert!(!is_canonical_scalar(&BASEPOINT_ORDER));
-
-        let mut scalar = BASEPOINT_ORDER;
-        scalar[0] -= 1;
-        assert!(is_canonical_scalar(&scalar));
-    }
 
     #[test]
     fn reduces_group_order_to_zero() {

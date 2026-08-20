@@ -57,8 +57,6 @@ pub struct VerificationCriteria {
     /// Costs a multiplication by the cofactor 8 (three `sol_curve_group_op`
     /// additions) when enabled.
     pub reject_small_order_r: bool,
-    /// Reject signatures whose scalar `S` is not in canonical `[0, L)` form.
-    pub require_canonical_s: bool,
 }
 
 impl VerificationCriteria {
@@ -79,7 +77,6 @@ impl VerificationCriteria {
             require_canonical_r: false,
             reject_small_order_a: false,
             reject_small_order_r: false,
-            require_canonical_s: true,
         }
     }
 
@@ -99,7 +96,6 @@ impl VerificationCriteria {
             require_canonical_r: true,
             reject_small_order_a: true,
             reject_small_order_r: true,
-            require_canonical_s: true,
         }
     }
 }

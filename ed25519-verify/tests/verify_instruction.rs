@@ -217,7 +217,7 @@ fn new_uses_zip215_criteria() {
 }
 
 #[test]
-fn require_canonical_s_is_enforced_by_default_only() {
+fn non_canonical_s_is_always_rejected() {
     let message = b"hello ed25519";
     let (mut signature, public_key) = signed_payload(message);
     // S = L (the group order): non-canonical.
@@ -227,30 +227,17 @@ fn require_canonical_s_is_enforced_by_default_only() {
         0x00, 0x10,
     ]);
 
-    // ZIP-215 requires canonical S.
-    assert_eq!(
-        verify_with(
-            VerificationCriteria::zip215(),
-            &signature,
-            &public_key,
-            message
-        ),
-        Err(ProgramError::InvalidArgument)
-    );
-
-    // Disabling the knob lets the reduced scalar through; S = L reduces to 0, so
-    // the equation no longer holds and it fails for a different reason, but never
-    // via the canonical-S gate. Use a genuinely valid signature to confirm the
-    // gate itself is off.
-    let (valid_signature, valid_public_key) = signed_payload(message);
-    let criteria = VerificationCriteria {
-        require_canonical_s: false,
-        ..VerificationCriteria::zip215()
-    };
-    assert_eq!(
-        verify_with(criteria, &valid_signature, &valid_public_key, message),
-        Ok(())
-    );
+    for criteria in [
+        VerificationCriteria::zip215(),
+        VerificationCriteria {
+            ..VerificationCriteria::zip215()
+        },
+    ] {
+        assert_eq!(
+            verify_with(criteria, &signature, &public_key, message),
+            Err(ProgramError::InvalidArgument)
+        );
+    }
 }
 
 #[test]
