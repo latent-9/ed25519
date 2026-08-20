@@ -103,6 +103,17 @@ impl Ed25519Verifier {
             &[ED25519_BASEPOINT_COMPRESSED, public_key_point],
         )
         .ok_or(ProgramError::InvalidArgument)?;
+
+        // `lhs` is the canonical compressed encoding produced by the curve
+        // backend. If it matches `R` byte for byte then `R` decodes to the same
+        // point, so `lhs - R` is the identity and both the cofactorless and the
+        // cofactored equation hold. Taking the decision here skips the
+        // `subtract_edwards` syscall on the path every honestly generated
+        // signature follows.
+        if lhs.0 == *r_bytes {
+            return Ok(());
+        }
+
         let difference = subtract_edwards(&lhs, &r_point).ok_or(ProgramError::InvalidArgument)?;
 
         // An exact-identity difference satisfies both the cofactorless and the
