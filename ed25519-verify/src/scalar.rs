@@ -44,17 +44,6 @@ pub(crate) fn reduce_wide(wide: &[u8; 64]) -> [u8; 32] {
     remainder
 }
 
-/// Returns `-scalar mod L`, preserving zero.
-pub(crate) fn negate(scalar: &[u8; 32]) -> [u8; 32] {
-    if scalar.iter().all(|byte| *byte == 0) {
-        return [0; 32];
-    }
-
-    let mut result = BASEPOINT_ORDER;
-    sub_assign(&mut result, scalar);
-    result
-}
-
 fn shl1(value: &mut [u8; 32]) {
     let mut carry = 0u8;
     for byte in value {
