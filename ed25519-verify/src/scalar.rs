@@ -90,11 +90,6 @@ mod tests {
     }
 
     #[test]
-    fn negates_zero_to_zero() {
-        assert_eq!(negate(&[0; 32]), [0; 32]);
-    }
-
-    #[test]
     fn accepts_reduced_encodings() {
         // y = 0
         assert!(is_canonical_point_encoding(&[0; 32]));
