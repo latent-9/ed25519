@@ -228,7 +228,7 @@ fn non_canonical_s_is_always_rejected() {
     ]);
 
     for criteria in [
-        VerificationCriteria::zip215(),
+        VerificationCriteria::dalek_verify_strict(),
         VerificationCriteria {
             ..VerificationCriteria::zip215()
         },

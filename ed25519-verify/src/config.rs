@@ -25,6 +25,11 @@
 /// are public so callers can compose arbitrary combinations, typically by
 /// starting from a preset and overriding a single knob:
 ///
+/// Canonical `S` (`S < L`) is enforced for every criteria set and so has no
+/// corresponding field: the curve backend converts scalars through
+/// `Scalar::from_canonical_bytes` and rejects anything out of range before any
+/// group operation runs.
+///
 /// ```
 /// use solana_ed25519_verify::VerificationCriteria;
 ///
@@ -62,10 +67,10 @@ pub struct VerificationCriteria {
 impl VerificationCriteria {
     /// [ZIP-215] verification, as specified for Solana by [SIMD-0376].
     ///
-    /// Cofactored equation with a canonical `S` requirement; non-canonical point
-    /// encodings and small-order points are accepted (cofactor multiplication
-    /// makes them indistinguishable from the identity contribution). This is
-    /// backward compatible with `ed25519_dalek::verify_strict`: every signature
+    /// Cofactored equation; non-canonical point encodings and small-order
+    /// points are accepted (cofactor multiplication makes them
+    /// indistinguishable from the identity contribution). This is backward
+    /// compatible with `ed25519_dalek::verify_strict`: every signature
     /// dalek accepts is accepted here.
     ///
     /// [ZIP-215]: https://zips.z.cash/zip-0215
@@ -82,13 +87,13 @@ impl VerificationCriteria {
 
     /// The criteria enforced by `ed25519_dalek::VerifyingKey::verify_strict`.
     ///
-    /// Cofactorless verification with canonical `S`, canonical `R`, and
-    /// small-order rejection for both `A` and `R`. Mirrors ed25519-dalek 2.x
-    /// exactly, including the detail that a non-canonically encoded public key
-    /// `A` is *not* rejected — dalek's `VerifyingKey::from_bytes` decompresses
-    /// `A` (reducing `y` modulo `p`) without a canonicity check, and
-    /// `verify_strict` only re-encodes and compares `R`. Every signature this
-    /// preset accepts is accepted by dalek's `verify_strict`, and vice versa.
+    /// Cofactorless verification with canonical `R` and small-order rejection
+    /// for both `A` and `R`. Mirrors ed25519-dalek 2.x exactly, including the
+    /// detail that a non-canonically encoded public key `A` is *not* rejected
+    /// — dalek's `VerifyingKey::from_bytes` decompresses `A` (reducing `y`
+    /// modulo `p`) without a canonicity check, and `verify_strict` only
+    /// re-encodes and compares `R`. Every signature this preset accepts is
+    /// accepted by dalek's `verify_strict`, and vice versa.
     pub const fn dalek_verify_strict() -> Self {
         Self {
             cofactored: false,
