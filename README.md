@@ -19,11 +19,11 @@ succeeded.
 
 ## Syscalls used
 
-| Syscall | SDK wrapper |
-|---|---|
-| `sol_sha512` | `solana_sha512_hasher::hashv` |
-| `sol_curve_group_op` | `solana_curve25519::edwards::{add_edwards, subtract_edwards}` |
-| `sol_curve_multiscalar_mul` | `solana_curve25519::edwards::multiscalar_multiply_edwards` |
+| Syscall                     | SDK wrapper                                                   |
+| --------------------------- | ------------------------------------------------------------- |
+| `sol_sha512`                | `solana_sha512_hasher::hashv`                                 |
+| `sol_curve_group_op`        | `solana_curve25519::edwards::{add_edwards, subtract_edwards}` |
+| `sol_curve_multiscalar_mul` | `solana_curve25519::edwards::multiscalar_multiply_edwards`    |
 
 `sol_sha512` is not live on mainnet yet. The wrapper crate is published as
 `solana-sha512-hasher`, and a local/custom VM must enable the SHA-512 syscall
@@ -44,7 +44,7 @@ The `verify` helper in `solana-ed25519-verify` builds this layout.
 ### Constraints
 
 - **Verification criteria.** The program always applies [ZIP-215]: the
-  cofactored equation `[8](S·B − H(R‖A‖M)·A) == [8]R` with canonical `S`.
+  cofactored equation `[8](S·B − H(R‖A‖M)·A) == [8]R`.
   Small-order and non-canonical points are accepted. Programs needing a
   different variant (e.g. `verify_strict`) should depend on the
   `solana-ed25519-verify` library directly (see
@@ -63,19 +63,23 @@ non-canonical encodings, and small-order rejection (see Henry de Valence's
 [It's 255:19AM]). The `solana-ed25519-verify` crate exposes these as independent
 knobs via `VerificationCriteria`:
 
-| Knob | Effect when enabled | Extra syscalls |
-|---|---|---|
-| `cofactored` | Use `[8](S·B − H·A − R) == identity` instead of the cofactorless `S·B − H·A − R == identity` | +3 `sol_curve_group_op` (multiply-by-8 as three doublings) |
-| `require_canonical_a` | Reject public keys whose `y`-coordinate is `≥ p` | none |
-| `require_canonical_r` | Reject signature `R` whose `y`-coordinate is `≥ p` | none |
-| `reject_small_order_a` | Reject small-order (torsion) public keys | +3 `sol_curve_group_op` |
-| `reject_small_order_r` | Reject small-order signature `R` values | +3 `sol_curve_group_op` |
-| `require_canonical_s` | Reject `S ≥ L` | none |
+| Knob                   | Effect when enabled                                                                          | Extra syscalls                                             |
+| ---------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `cofactored`           | Use `[8](S·B − H·A − R) == identity` instead of the cofactorless `S·B − H·A − R == identity` | +3 `sol_curve_group_op` (multiply-by-8 as three doublings) |
+| `require_canonical_a`  | Reject public keys whose `y`-coordinate is `≥ p`                                             | none                                                       |
+| `require_canonical_r`  | Reject signature `R` whose `y`-coordinate is `≥ p`                                           | none                                                       |
+| `reject_small_order_a` | Reject small-order (torsion) public keys                                                     | +3 `sol_curve_group_op`                                    |
+| `reject_small_order_r` | Reject small-order signature `R` values                                                      | +3 `sol_curve_group_op`                                    |
+
+Canonical `S` (`S < L`) is enforced for every criteria set and so has no knob:
+`sol_curve_multiscalar_mul` converts scalars through
+`Scalar::from_canonical_bytes` and rejects anything out of range before any
+group operation runs.
 
 ```rust
 use solana_ed25519_verify::{Ed25519Verifier, VerificationCriteria};
 
-// Default: the ZIP-215 preset (cofactored, canonical S required).
+// Default: the ZIP-215 preset (cofactored).
 let verifier = Ed25519Verifier::new();
 
 // `ed25519-dalek`'s verify_strict semantics.
@@ -90,14 +94,14 @@ let custom = Ed25519Verifier::with_criteria(VerificationCriteria {
 
 Named presets:
 
-| Preset | `cofactored` | `canonical_a` | `canonical_r` | `small_order_a` | `small_order_r` | `canonical_s` |
-|---|---|---|---|---|---|---|
-| `zip215()` (default) | ✓ | | | | | ✓ |
-| `dalek_verify_strict()` | | | ✓ | ✓ | ✓ | ✓ |
+| Preset                  | `cofactored` | `canonical_a` | `canonical_r` | `small_order_a` | `small_order_r` |
+| ----------------------- | ------------ | ------------- | ------------- | --------------- | --------------- |
+| `zip215()` (default)    | ✓            |               |               |                 |                 |
+| `dalek_verify_strict()` |              |               | ✓             | ✓               | ✓               |
 
 `dalek_verify_strict()` matches `ed25519_dalek::VerifyingKey::verify_strict`
 exactly (cross-checked in the test suite), including the detail that a
-non-canonically encoded public key `A` is *not* rejected. Further presets
+non-canonically encoded public key `A` is _not_ rejected. Further presets
 (libsodium, RFC 8032 / FIPS 186-5) can be added in follow-ups.
 
 The on-chain program always applies the `zip215()` preset. A program needing a

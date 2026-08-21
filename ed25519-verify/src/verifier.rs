@@ -7,9 +7,9 @@ use {
     solana_program_error::ProgramError,
 };
 
-const ED25519_BASEPOINT_COMPRESSED: PodEdwardsPoint = PodEdwardsPoint([
+const ED25519_BASEPOINT_NEGATED_COMPRESSED: PodEdwardsPoint = PodEdwardsPoint([
     0x58, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66,
-    0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66,
+    0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0xe6,
 ]);
 /// Identity point of the Edwards curve, in compressed form.
 pub(crate) const EDWARDS_IDENTITY_COMPRESSED_BYTES: [u8; PUBKEY_SERIALIZED_SIZE] = [
@@ -61,7 +61,7 @@ impl Ed25519Verifier {
     /// [`VerificationCriteria::cofactored`], the check is performed either
     /// cofactored — `[8](S*B - H*A - R) == identity`, matching the
     /// ed25519-zebra batch verification shape — or cofactorless —
-    /// `S*B - H*A - R == identity`. The canonical-`S`, canonical-encoding, and
+    /// `S*B - H*A - R == identity`. The canonical-encoding and
     /// small-order rejections are applied first per the configured knobs.
     pub fn verify_signature(
         &self,
@@ -73,9 +73,12 @@ impl Ed25519Verifier {
         let r_bytes: &[u8; 32] = r_bytes.try_into().unwrap();
         let s_bytes: &[u8; 32] = s_bytes.try_into().unwrap();
 
-        if self.criteria.require_canonical_s && !scalar::is_canonical_scalar(s_bytes) {
-            return Err(ProgramError::InvalidArgument);
-        }
+        // `require_canonical_s` is deliberately not checked because
+        // `multiscalar_multiply_edwards` converts `PodScalar` through
+        // `Scalar::from_canonical_bytes` and returns `None` on a non-canonical
+        // scalar, which maps to the same `InvalidArgument` below. Re-checking
+        // it in-program duplicates work the curve backend already performs.
+
         if self.criteria.require_canonical_a && !scalar::is_canonical_point_encoding(public_key) {
             return Err(ProgramError::InvalidArgument);
         }
@@ -94,12 +97,30 @@ impl Ed25519Verifier {
         }
 
         let challenge = compute_challenge(r_bytes, public_key, message);
-        let minus_challenge = scalar::negate(&challenge);
-        let lhs = multiscalar_multiply_edwards(
-            &[PodScalar(*s_bytes), PodScalar(minus_challenge)],
-            &[ED25519_BASEPOINT_COMPRESSED, public_key_point],
+
+        // S*(-B) + H*A = -(S*B - H*A), so this yields the negation of the value
+        // the verification equation compares against R.
+        let neg_lhs = multiscalar_multiply_edwards(
+            &[PodScalar(*s_bytes), PodScalar(challenge)],
+            &[ED25519_BASEPOINT_NEGATED_COMPRESSED, public_key_point],
         )
         .ok_or(ProgramError::InvalidArgument)?;
+
+        // Flip the sign bit back to recover the encoding of `S*B - H*A`, then
+        // compare against `R` as supplied. `neg_lhs` is canonical, so the flip
+        // yields the canonical encoding of `lhs` (except when `lhs` has x = 0,
+        // where it yields negative zero — which can only miss, never falsely
+        // match). A match therefore implies `R == lhs` as points, so `lhs - R`
+        // is the identity and both the cofactorless and the cofactored equation
+        // hold. Deciding here skips the `subtract_edwards` syscall on the path
+        // every honestly generated signature follows.
+        let mut lhs_bytes = neg_lhs.0;
+        lhs_bytes[31] ^= 0x80;
+        if lhs_bytes == *r_bytes {
+            return Ok(());
+        }
+
+        let lhs = PodEdwardsPoint(lhs_bytes);
         let difference = subtract_edwards(&lhs, &r_point).ok_or(ProgramError::InvalidArgument)?;
 
         // An exact-identity difference satisfies both the cofactorless and the

@@ -14,11 +14,6 @@ const FIELD_MODULUS: [u8; 32] = [
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f,
 ];
 
-/// Returns `true` if `scalar` is in canonical `[0, L)` form.
-pub(crate) fn is_canonical_scalar(scalar: &[u8; 32]) -> bool {
-    cmp_le(scalar, &BASEPOINT_ORDER).is_lt()
-}
-
 /// Returns `true` if `encoding` is a canonical compressed Edwards point.
 ///
 /// A compressed point stores the `y`-coordinate in the low 255 bits and the
@@ -47,17 +42,6 @@ pub(crate) fn reduce_wide(wide: &[u8; 64]) -> [u8; 32] {
     }
 
     remainder
-}
-
-/// Returns `-scalar mod L`, preserving zero.
-pub(crate) fn negate(scalar: &[u8; 32]) -> [u8; 32] {
-    if scalar.iter().all(|byte| *byte == 0) {
-        return [0; 32];
-    }
-
-    let mut result = BASEPOINT_ORDER;
-    sub_assign(&mut result, scalar);
-    result
 }
 
 fn shl1(value: &mut [u8; 32]) {
@@ -99,24 +83,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn rejects_group_order_as_non_canonical() {
-        assert!(!is_canonical_scalar(&BASEPOINT_ORDER));
-
-        let mut scalar = BASEPOINT_ORDER;
-        scalar[0] -= 1;
-        assert!(is_canonical_scalar(&scalar));
-    }
-
-    #[test]
     fn reduces_group_order_to_zero() {
         let mut wide = [0u8; 64];
         wide[..32].copy_from_slice(&BASEPOINT_ORDER);
         assert_eq!(reduce_wide(&wide), [0; 32]);
-    }
-
-    #[test]
-    fn negates_zero_to_zero() {
-        assert_eq!(negate(&[0; 32]), [0; 32]);
     }
 
     #[test]
