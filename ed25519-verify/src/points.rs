@@ -5,9 +5,8 @@
 //! challenge hash `H(R || A || M) mod L`.
 
 use {
-    crate::{constants::EDWARDS_IDENTITY_COMPRESSED, scalar},
+    crate::{constants::EDWARDS_IDENTITY_COMPRESSED, error::Ed25519VerifyError, scalar},
     solana_curve25519::edwards::{add_edwards, PodEdwardsPoint},
-    solana_program_error::ProgramError,
 };
 
 /// Returns `Ok(true)` if `point` decompresses to a small-order (torsion) point.
@@ -15,11 +14,11 @@ use {
 /// A point has order dividing the cofactor 8 exactly when `[8]P` is the
 /// identity. This decompresses `point` (accepting non-canonical encodings, which
 /// reduce modulo `p`). An encoding that does not decompress returns
-/// `Err(InvalidArgument)` so the caller can reject it immediately, rather than
+/// `Err(InvalidEncoding)` so the caller can reject it immediately, rather than
 /// treating it as non-small-order and paying for the subsequent verification
 /// syscalls only to fail there.
-pub(crate) fn is_small_order(point: &PodEdwardsPoint) -> Result<bool, ProgramError> {
-    let product = multiply_by_8(point).ok_or(ProgramError::InvalidArgument)?;
+pub(crate) fn is_small_order(point: &PodEdwardsPoint) -> Result<bool, Ed25519VerifyError> {
+    let product = multiply_by_8(point).ok_or(Ed25519VerifyError::InvalidEncoding)?;
     Ok(product == EDWARDS_IDENTITY_COMPRESSED)
 }
 
@@ -112,7 +111,10 @@ mod tests {
     #[test]
     fn is_small_order_propagates_decompression_failure() {
         let point = PodEdwardsPoint(NON_DECOMPRESSING_ENCODING);
-        assert_eq!(is_small_order(&point), Err(ProgramError::InvalidArgument));
+        assert_eq!(
+            is_small_order(&point),
+            Err(Ed25519VerifyError::InvalidEncoding)
+        );
     }
 
     #[test]
