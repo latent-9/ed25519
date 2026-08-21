@@ -1,8 +1,12 @@
+extern crate alloc;
+
 use {
     alloc::{vec, vec::Vec},
+    solana_address::{declare_id, Address},
     solana_instruction::Instruction,
-    solana_pubkey::Pubkey,
 };
+
+declare_id!("ed2DNnfPh19L66ahBPivbPkf5H1nW82zWTYGMjuQk9L");
 
 /// Constructs an on-chain instruction to invoke `solana-ed25519-program`.
 ///
@@ -11,7 +15,7 @@ use {
 ///
 /// [ZIP-215]: crate::VerificationCriteria::zip215
 pub fn verify(
-    program_id: &Pubkey,
+    program_id: &Address,
     public_key: &[u8; 32],
     signature: &[u8; 64],
     message: &[u8],

@@ -11,12 +11,10 @@
 //! [`Ed25519Verifier::with_criteria`].
 
 #[cfg(feature = "instruction")]
-extern crate alloc;
-#[cfg(feature = "instruction")]
 pub mod instruction;
 
 #[cfg(feature = "instruction")]
-pub use instruction::verify;
+pub use instruction::{id, verify, ID};
 
 #[cfg(feature = "verify")]
 mod config;
