@@ -26,7 +26,7 @@
 /// starting from a preset and overriding a single knob:
 ///
 /// Canonical `S` (`S < L`) is enforced for every criteria set and so has no
-/// corresponding field: the curve backend converts scalars through
+/// corresponding field: the curve back-end converts scalars through
 /// `Scalar::from_canonical_bytes` and rejects anything out of range before any
 /// group operation runs.
 ///
