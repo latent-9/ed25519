@@ -14,8 +14,10 @@
 extern crate alloc;
 
 mod config;
+pub mod constants;
 #[cfg(feature = "instruction")]
 pub mod instruction;
+mod points;
 mod scalar;
 mod verifier;
 
@@ -23,6 +25,3 @@ pub use config::VerificationCriteria;
 #[cfg(feature = "instruction")]
 pub use instruction::verify;
 pub use verifier::Ed25519Verifier;
-
-pub const PUBKEY_SERIALIZED_SIZE: usize = 32;
-pub const SIGNATURE_SERIALIZED_SIZE: usize = 64;

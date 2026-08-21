@@ -2,7 +2,10 @@ use {
     ed25519_dalek::{Signer, SigningKey},
     mollusk_svm::Mollusk,
     solana_account::Account,
-    solana_ed25519_verify::{verify, PUBKEY_SERIALIZED_SIZE, SIGNATURE_SERIALIZED_SIZE},
+    solana_ed25519_verify::{
+        constants::{PUBKEY_SERIALIZED_SIZE, SIGNATURE_SERIALIZED_SIZE},
+        verify,
+    },
     solana_instruction::{AccountMeta, Instruction},
     solana_program_runtime::{
         invoke_context::InvokeContext,

@@ -1,8 +1,8 @@
 use {
     ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey},
     solana_ed25519_verify::{
-        verify, Ed25519Verifier, VerificationCriteria, PUBKEY_SERIALIZED_SIZE,
-        SIGNATURE_SERIALIZED_SIZE,
+        constants::{PUBKEY_SERIALIZED_SIZE, SIGNATURE_SERIALIZED_SIZE},
+        verify, Ed25519Verifier, VerificationCriteria,
     },
     solana_program_error::ProgramError,
     solana_pubkey::Pubkey,

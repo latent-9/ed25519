@@ -6,7 +6,10 @@ use {
     pinocchio::{
         entrypoint::InstructionContext, error::ProgramError, lazy_program_entrypoint, ProgramResult,
     },
-    solana_ed25519_verify::{Ed25519Verifier, PUBKEY_SERIALIZED_SIZE, SIGNATURE_SERIALIZED_SIZE},
+    solana_ed25519_verify::{
+        constants::{PUBKEY_SERIALIZED_SIZE, SIGNATURE_SERIALIZED_SIZE},
+        Ed25519Verifier,
+    },
 };
 
 const PUBKEY_OFFSET: usize = 0;
