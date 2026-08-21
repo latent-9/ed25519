@@ -23,7 +23,7 @@ solana-sha512-hasher = { workspace = true, optional = true }
 [dev-dependencies]
 curve25519-dalek = { workspace = true }
 ed25519-dalek = { workspace = true }
-solana-address = { workspace = true }
+solana-address = { workspace = true, features = ["atomic"] }
 solana-ed25519-verify = { path = ".", features = ["instruction"] }
 
 [lints]

@@ -33,7 +33,7 @@ pub enum Ed25519VerifyError {
     ///
     /// These two causes are not distinguished: telling them apart would
     /// require either a canonical-`S` check duplicating work the curve
-    /// backend already performs internally, or a public-key decode check
+    /// back-end already performs internally, or a public-key decode check
     /// ahead of the syscall that computes the verification equation. Both
     /// would cost compute units on every signature to add precision that
     /// only benefits the malformed-input case.

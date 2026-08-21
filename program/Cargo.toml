@@ -11,7 +11,9 @@ default = []
 
 [dependencies]
 pinocchio = { workspace = true }
-solana-ed25519-verify = { workspace = true }
+solana-ed25519-verify = { workspace = true, default-features = false, features = [
+    "verify",
+] }
 
 [dev-dependencies]
 ed25519-dalek = { workspace = true }

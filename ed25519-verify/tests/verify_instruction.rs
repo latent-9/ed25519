@@ -1,10 +1,10 @@
 use {
     ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey},
+    solana_address::Address,
     solana_ed25519_verify::{
         constants::{PUBKEY_SERIALIZED_SIZE, SIGNATURE_SERIALIZED_SIZE},
         verify, Ed25519Verifier, Ed25519VerifyError, VerificationCriteria,
     },
-    solana_pubkey::Pubkey,
 };
 
 const EDWARDS_IDENTITY_COMPRESSED: [u8; PUBKEY_SERIALIZED_SIZE] = [
@@ -53,7 +53,7 @@ fn verifies_matching_signature() {
 
 #[test]
 fn constructs_program_instruction_with_direct_layout() {
-    let program_id = Pubkey::new_unique();
+    let program_id = Address::new_unique();
     let message = b"hello ed25519";
     let (signature, public_key) = signed_payload(message);
 
