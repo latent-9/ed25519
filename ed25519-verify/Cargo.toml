@@ -19,6 +19,7 @@ solana-pubkey = { workspace = true, optional = true }
 solana-sha512-hasher = { workspace = true }
 
 [dev-dependencies]
+curve25519-dalek = { workspace = true }
 ed25519-dalek = { workspace = true }
 solana-ed25519-verify = { path = ".", features = ["instruction"] }
 solana-pubkey = { workspace = true }

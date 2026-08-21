@@ -2230,6 +2230,7 @@ dependencies = [
 name = "solana-ed25519-verify"
 version = "0.1.0"
 dependencies = [
+ "curve25519-dalek",
  "ed25519-dalek",
  "solana-curve25519",
  "solana-ed25519-verify",

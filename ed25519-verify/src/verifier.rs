@@ -175,3 +175,107 @@ fn compute_challenge(signature_r: &[u8; 32], public_key: &[u8; 32], message: &[u
     let digest = solana_sha512_hasher::hashv(&[signature_r, public_key, message]).to_bytes();
     scalar::reduce_wide(&digest)
 }
+
+#[cfg(test)]
+mod tests {
+    use {super::*, curve25519_dalek::traits::Identity, ed25519_dalek::SigningKey};
+
+    const SMALL_ORDER_PUBLIC_KEY_COMPRESSED: [u8; PUBKEY_SERIALIZED_SIZE] = [
+        0xec, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0x7f,
+    ];
+
+    const NON_DECOMPRESSING_ENCODING: [u8; PUBKEY_SERIALIZED_SIZE] = [
+        0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00,
+    ];
+
+    fn prime_order_point() -> PodEdwardsPoint {
+        let signing_key = SigningKey::from_bytes(&[7; 32]);
+        PodEdwardsPoint(signing_key.verifying_key().to_bytes())
+    }
+
+    #[test]
+    fn negated_basepoint_constant_matches_curve25519_dalek() {
+        let mut expected = curve25519_dalek::constants::ED25519_BASEPOINT_COMPRESSED.to_bytes();
+        // Negating a compressed Edwards point flips only the sign bit of `x`,
+        // stored in the top bit of the last byte; the `y`-coordinate bytes are
+        // unchanged.
+        expected[31] ^= 0x80;
+
+        assert_eq!(ED25519_BASEPOINT_NEGATED_COMPRESSED.0, expected);
+    }
+
+    #[test]
+    fn identity_constant_matches_curve25519_dalek() {
+        let expected = curve25519_dalek::edwards::EdwardsPoint::identity()
+            .compress()
+            .to_bytes();
+
+        assert_eq!(EDWARDS_IDENTITY_COMPRESSED_BYTES, expected);
+    }
+
+    #[test]
+    fn multiply_by_8_maps_identity_to_identity() {
+        assert_eq!(
+            multiply_by_8(&EDWARDS_IDENTITY_COMPRESSED),
+            Some(EDWARDS_IDENTITY_COMPRESSED)
+        );
+    }
+
+    #[test]
+    fn multiply_by_8_clears_small_order_point() {
+        let point = PodEdwardsPoint(SMALL_ORDER_PUBLIC_KEY_COMPRESSED);
+        assert_eq!(multiply_by_8(&point), Some(EDWARDS_IDENTITY_COMPRESSED));
+    }
+
+    #[test]
+    fn multiply_by_8_does_not_clear_prime_order_point() {
+        assert_ne!(
+            multiply_by_8(&prime_order_point()),
+            Some(EDWARDS_IDENTITY_COMPRESSED)
+        );
+    }
+
+    #[test]
+    fn multiply_by_8_rejects_non_decompressing_encoding() {
+        let point = PodEdwardsPoint(NON_DECOMPRESSING_ENCODING);
+        assert_eq!(multiply_by_8(&point), None);
+    }
+
+    #[test]
+    fn is_small_order_true_for_torsion_point() {
+        let point = PodEdwardsPoint(SMALL_ORDER_PUBLIC_KEY_COMPRESSED);
+        assert_eq!(is_small_order(&point), Ok(true));
+    }
+
+    #[test]
+    fn is_small_order_false_for_prime_order_point() {
+        assert_eq!(is_small_order(&prime_order_point()), Ok(false));
+    }
+
+    #[test]
+    fn is_small_order_propagates_decompression_failure() {
+        let point = PodEdwardsPoint(NON_DECOMPRESSING_ENCODING);
+        assert_eq!(is_small_order(&point), Err(ProgramError::InvalidArgument));
+    }
+
+    #[test]
+    fn compute_challenge_hashes_r_then_a_then_message() {
+        // Independently re-derives H(R || A || M) via a differently-shaped
+        // `hashv` call (three slices, matching the argument order in the RFC
+        // 8032 challenge definition) so this test doesn't just echo
+        // `compute_challenge`'s own call, and would catch R/A getting swapped
+        // in a future refactor.
+        let r = [0x11u8; 32];
+        let a = [0x22u8; 32];
+        let message = b"order check";
+
+        let digest = solana_sha512_hasher::hashv(&[&r, &a, message]).to_bytes();
+        let expected = scalar::reduce_wide(&digest);
+
+        assert_eq!(compute_challenge(&r, &a, message), expected);
+    }
+}
